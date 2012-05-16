@@ -30,9 +30,13 @@ class AlotRepo(object):
         return self.repo.working_dir < rhs.repo.working_dir
     
     @property
+    def has_stash(self):
+        return "refs/stash" in self.repo.refs
+    
+    @property
     def has_dirt(self):
         # TODO check for stash
-        return self.repo.is_dirty(untracked_files=True)
+        return self.repo.is_dirty(untracked_files=True) or self.has_stash
     
     def __str__(self):
         result = []; A = result.append
@@ -55,6 +59,16 @@ class AlotRepo(object):
             A(indent("\n".join(untracked[:MAX])))
             if len(untracked) > MAX:
                 A(indent("... and {0} more".format(len(untracked)-MAX)))
+        
+        if self.has_stash:
+            log = repo.refs["refs/stash"].log()
+            
+            A("  == {0} item(s) in stash ==".format(len(log)))
+            for i, stash in enumerate(log):
+                A(indent(stash.message))
+                ref = "stash@{{{0}}}".format(i)
+                A(indent(repo.git.stash("show", "--stat", ref), 7))
+                
         
         return "\n".join(result)
     
