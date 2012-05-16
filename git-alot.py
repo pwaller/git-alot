@@ -14,7 +14,7 @@ import git
 
 def find_git_repositories():
     status, output = getstatusoutput(expandvars("find ${HOME} -iname .git"))
-    assert not status
+    assert not status, "Find failed: {0}".format(output)
     return output.split("\n")
 
 def indent(t, i=4):
