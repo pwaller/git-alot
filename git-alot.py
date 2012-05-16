@@ -8,10 +8,11 @@ import git
 
 # TODO
 
-# * Stashes
-# * Repository 'cleanliness'
-# * Find roots of repositories, so that repository copies can be identified?
-# * Remote syncing status?
+# Repository 'cleanliness' for sorting
+# Remote syncing status?
+# Find roots of repositories, so that repository copies can be identified?
+# Commandline switches (e.g, only view stashes, or other things)
+
 
 def find_git_repositories():
     p = Popen(["find", environ["HOME"], "-iname", ".git"], stdout=PIPE, stderr=PIPE)
@@ -38,7 +39,6 @@ class AlotRepo(object):
     
     @property
     def has_dirt(self):
-        # TODO check for stash
         return self.repo.is_dirty(untracked_files=True) or self.has_stash
     
     def __str__(self):
