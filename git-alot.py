@@ -88,9 +88,18 @@ def main():
         print repo
         print
     
+    nrepos = len(repos)
     nclean = len(repos) - len(dirty_repos)
-    if nclean:
-        print ".. you have", nclean, "clean repositories. Nice!"
+    if nclean == nrepos:
+        print "All of your {0} repositories are clean. Very Nice!".format(nrepos)
+    elif nclean >= 0.75*nrepos:
+        print ".. you have {0} clean repositories out of {1}. Nice!".format(nclean, nrepos)
+    elif nclean >= 0.5*nrepos:
+        print ".. you have {0} clean repositories out of {1}. Good!".format(nclean, nrepos)
+    elif nclean >= 0.25*nrepos:
+        print ".. you have {0} clean repositories out of {1}.".format(nclean, nrepos)
+    elif nclean > 0:
+        print ".. only {0} of your {1} repositories are clean.".format(nclean, nrepos)
     else:
         print "You have no clean repositories :-("
 
