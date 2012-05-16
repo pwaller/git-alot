@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 
 from os.path import expandvars
-from commands import getstatusoutput
+from os import environ
+from subprocess import Popen, PIPE
 
 import git
 
@@ -13,8 +14,10 @@ import git
 # * Remote syncing status?
 
 def find_git_repositories():
-    status, output = getstatusoutput(expandvars("find ${HOME} -iname .git"))
-    assert not status, "Find failed: {0}".format(output)
+    p = Popen(["find", environ["HOME"], "-iname", ".git"], stdout=PIPE, stderr=PIPE)
+    output, stderr = p.communicate()
+    if p.returncode != 0:
+        print "Find may not have found all repositories: {0}".format(stderr)
     return output.split("\n")
 
 def indent(t, i=4):
