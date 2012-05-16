@@ -45,11 +45,17 @@ any stashes. It then lists all repositories with outstanding things.
 Future concepts
 ---------------
 
-It would be nice also to track of synchronizing repositories across multiple
+It would be nice also to track synchronization of repositories across multiple
 machines, but I'm not sure how to implement this in a clean way at the moment,
 other than just running it on each one and making sure for yourself that you
 have pushed and fetched.
 
+
+Ideas
+-----
+
+Put this in your `crontab`, get a weekly e-mail telling you about repositories
+you left in a mess.
 
 Issues
 ------

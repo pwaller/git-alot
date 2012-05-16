@@ -95,6 +95,7 @@ def main():
     nclean = len(repos) - len(dirty_repos)
     if nclean == nrepos:
         print "All of your {0} repositories are clean. Very Nice!".format(nrepos)
+        return 0
     elif nclean >= 0.75*nrepos:
         print ".. you have {0} clean repositories out of {1}. Nice!".format(nclean, nrepos)
     elif nclean >= 0.5*nrepos:
@@ -105,6 +106,7 @@ def main():
         print ".. only {0} of your {1} repositories are clean.".format(nclean, nrepos)
     else:
         print "You have no clean repositories :-("
+    return 1
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
