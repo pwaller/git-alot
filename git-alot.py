@@ -208,7 +208,29 @@ def main():
     nrepos = len(repos)
     nclean = len(repos) - len(dirty_repos)
     if nclean == nrepos:
-        print "All of your {0} repositories are clean. Very Nice!".format(nrepos)
+        print """                                       ?IIMIM?
+      _____________   =M   M777II7I77777Z   =+M
+     /             \   D?I77I7II7IIIIII7777Z++
+    | Alot didn't   |    I77IIOIIIIII7III78
+    | find anything |    7$ o  I77MMMMM o ~M8N
+    | out of place /     ,ZIIM$7I7IIII7$$MONN7I$$$$$$$$OM?
+    \_____________/ `-- III787I       IIIINIII$77ZZ$$7Z$$$7NZMM?M
+                        IIM$I IIIIIIIII III$MI77$77$7I7$$$$$$$$$Z$O
+                       OIIM  IIIIIIIIIII  II7MI777$$$$Z7$$$$$$$77$77$~
+                      MIIIIIIIIIIIIIIIIIIIIII7777$$$7$$$$I$7$7$$77$77$I
+                      MIIIIIIIIIIIIIIIIIIIIIIII77$7$I7$I$$7ZI77$77$I77:?
+                     O$???IIIIIIIIIIIIIIIIIIIIII777I7777777I77777777I7IN
+                     MM7??IIIIIIIIIIIIIIIIII??II77I77II7I7I7777777I77I77N:
+                      :~M$7???IIIIIIII????+?IIII7I7777II77II??II77777?I?II
+                        O77I???????????+++?IIII?I?77IIII?I??+?++IIIIIIIII7
+                        :N????I??????++?+?IIIII????IIIIIII??????I++I?7I7IIO
+                        7ZZI???+?++++IIIIIIIIIII?II??????I?+IIIIII+I??IIIII
+                        M$ZN$77?+?++=IDIIIIIIIO7?I?+?+????+8?IIIIIII?IIIIII
+                       MII7$$Z7II7?7I$$IIIIIIII$I?????????I777IIIIIIIIIIIIIIM
+                      MIIIIIIIMM$MIIII77IIIIIII$7?I??I???????I$IIIIIIIIIIIIII
+                      IIIIIIII     $II7MIIIIIIIIM7I????????IID$ZIIIIIIIIIIIII
+                     MM                MMMIIMIMMM ~  DM M?   ~  ?IMM$MMM  M
+                                        M   M ?"""
         return 0
     elif nclean >= 0.75*nrepos:
         print ".. you have {0} clean repositories out of {1}. Nice!".format(nclean, nrepos)
