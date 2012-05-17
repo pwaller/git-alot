@@ -21,6 +21,34 @@ def gitalot_hook(*args, **kwargs):
     return result
 sys.excepthook = gitalot_hook
 
+# Match the output of "git branch -vva"
+RE_BRANCH = re.compile(dedent(r"""
+    ^(?P<active>\*)?\s*
+    (?P<branch>(\(no\ branch\)|[^\s]+))\s+
+    (
+        (
+         (?P<sha>[0-9a-f]+)\s+
+         (\[
+            (?P<tracking>[^\:]+):?\s*
+            (ahead\s+(?P<ahead>[0-9]+),?)?\s*
+            (behind\s+(?P<behind>[0-9]+))?\s*
+            (?P<unmatched>[^\]]+)?\s*
+          \]\s+
+         )?
+         (?P<msg>.*)
+        )
+        |
+        (->\s+(?P<sym>.*))
+    )\s*$"""), re.VERBOSE)
+
+def parse_branch_output(output):
+    result = []
+    for line in [l for l in output.split("\n") if l]:
+        m = RE_BRANCH.match(line)
+        if not m: raise RuntimeError("Unmatched: {0!r} {1}".format(line, output))
+        result.append(m.groupdict())
+    return result
+
 # TODO
 
 # Repository 'cleanliness' for sorting
@@ -71,6 +99,28 @@ class AlotRepo(object):
             return True
         return self.prev_mtime <= self.mtime
     
+    def branches(self, *args):
+        return parse_branch_output(self.repo.git.branch(*args))
+        
+    @property
+    def branch_data(self):
+        if self._branch_data is None:
+            try:
+                total = self.branches("-vva")
+                merged = self.branches("-vv", "--merged")
+                nomerged = self.branches("-vv", "--no-merged")
+            except git.exc.GitCommandError:
+                total, merged, nomerged = [], [], []
+            
+            active = None
+            for branchdata in total:
+                if branchdata["active"]:
+                    active = branchdata["branch"]
+            
+            self._branch_data = active, total, merged, nomerged
+            
+        return self._branch_data
+    
     @property
     def has_stash(self):
         return "refs/stash" in self.repo.refs
@@ -87,6 +137,9 @@ class AlotRepo(object):
         if o.untracked and repo.untracked_files:
             return True
         if o.stashes and self.has_stash:
+            return True
+        if o.branches:
+            # TODO: actual detection of dirt
             return True
         return False
     
@@ -131,7 +184,20 @@ class AlotRepo(object):
                 A(indent(stash.message))
                 ref = "stash@{{{0}}}".format(i)
                 A(indent(repo.git.stash("show", "--stat", ref), 7))
-                
+        
+        if self.options.branches:
+            A("  == unclean branch state ==")
+            # Unclean branch states
+            # * not being on master or dev
+            # * branches are ahead/behind
+            # * branches are merged
+            # * branches are unmerged
+            active, total, merged, unmerged = self.branch_data
+            if active is None or active.startswith("(") and active.endswith(")"):
+                A(indent("Not on a branch!"))
+            elif active not in set(("master", "dev")):
+                A(indent("Not on master or dev!"))
+            A(indent("Active branch: {0}".format(active)))
         
         return "\n".join(result)
 
