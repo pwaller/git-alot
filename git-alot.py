@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-from os import environ, makedirs
+from os import environ, makedirs, stat
 from os.path import abspath, exists, expandvars, join as pjoin
 from subprocess import Popen, PIPE
 from textwrap import dedent
@@ -43,8 +43,10 @@ def indent(t, i=4):
     return i + ("\n"+i).join(t.split("\n"))
     
 class AlotRepo(object):
-    def __init__(self, repo):
-        self.repo = repo
+    def __init__(self, path, prev_mtime=None):
+        self.repo = git.Repo(path)
+        self._branch_data = None
+        self.prev_mtime = prev_mtime
     
     def __lt__(self, rhs):
         # TODO some sort of cleanliness metric?
@@ -53,6 +55,21 @@ class AlotRepo(object):
     @property
     def no_commits(self):
         return not self.repo.refs
+    
+    @property
+    def path(self):
+        r = self.repo
+        return r.git_dir if r.bare else r.working_dir 
+    
+    @property
+    def mtime(self):
+        return stat(self.path).st_mtime
+    
+    @property
+    def stale(self):
+        if self.prev_mtime is not None:
+            return True
+        return self.prev_mtime <= self.mtime
     
     @property
     def has_stash(self):
@@ -138,7 +155,10 @@ def parse_args(args):
     
     O("-f", "--fetch", action="store_true",
         help="Run git fetch --all for all matching repositories")
+        
     O("-c", "--update-cache", action="store_true")
+    O("--updated", action="store_true",
+      help="Only show repositories modified since the cache was generated")
     
     options, args = parser.parse_args(args)
     
@@ -167,11 +187,12 @@ def cachedir():
     if not exists(path):
         makedirs(path)
     return path
-    
 
 def main():
     options, base = parse_args(sys.argv[1:])
     
+    AlotRepo.options = options
+
     cachefile = pjoin(cachedir(), "cache")
     if options.update_cache or not exists(cachefile) or base is not None:
         print "Searching for repositories..",
@@ -187,13 +208,17 @@ def main():
         with open(cachefile) as fd:
             repos = fd.read().split("\n")
         if base is None: base = environ["HOME"]
-        absbase = abspath(base)
-        repos = [r for r in repos if r.startswith(absbase)]
+        
+        repos = [AlotRepo(path, prev_mtime) for prev_mtime, path in lines
+                 if path.startswith(abspath(base))]
+    
+    repos = [r for r in repos if not r.repo.bare]
+    
+    if options.updated:
+        repos = [r for r in repos if not r.stale]
     
     print "Found {0}. That's alot of git.".format(len(repos))
     
-    repos = map(git.Repo, repos)
-    repos = [r for r in repos if not r.bare]
     
     if options.fetch:
         for repo in repos:
@@ -201,8 +226,6 @@ def main():
             repo.git.fetch("--all")
         return 0
     
-    AlotRepo.options = options
-    repos = map(AlotRepo, repos)
     dirty_repos = [r for r in repos if r.has_dirt]
     dirty_repos.sort()
     
