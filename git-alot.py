@@ -30,6 +30,7 @@ sys.excepthook = gitalot_hook
 
 
 def find_git_repositories(base):
+    base = base or environ["HOME"]
     args = ["find", base, "-type", "d", "-iname", ".git"]
     p = Popen(args, stdout=PIPE, stderr=PIPE)
     output, stderr = p.communicate()
@@ -150,7 +151,7 @@ def parse_args(args):
                 setattr(options, s, True)
     
     if not args:
-        base = environ["HOME"]
+        base = None
     elif len(args) == 1:
         base = args[0]
     else:
@@ -172,13 +173,16 @@ def main():
     options, base = parse_args(sys.argv[1:])
     
     cachefile = pjoin(cachedir(), "cache")
-    if options.update_cache or not exists(cachefile):
+    if options.update_cache or (not exists(cachefile) or base is not None):
         print "Searching for repositories..",
         sys.stdout.flush()
         repos = find_git_repositories(base)
-        with open(cachefile, "w") as fd:
-            # TODO write mtimes
-            fd.write("\n".join(repos))
+        if base is not None:
+            # Only generate the cache if we are doing the whole of HOME
+            # (base is None)
+            with open(cachefile, "w") as fd:
+                # TODO write mtimes
+                fd.write("\n".join(repos))
     else:
         with open(cachefile) as fd:
             repos = fd.read().split("\n")
