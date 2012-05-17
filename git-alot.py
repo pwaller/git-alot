@@ -173,11 +173,11 @@ def main():
     options, base = parse_args(sys.argv[1:])
     
     cachefile = pjoin(cachedir(), "cache")
-    if options.update_cache or (not exists(cachefile) or base is not None):
+    if options.update_cache or (not exists(cachefile) and base is None):
         print "Searching for repositories..",
         sys.stdout.flush()
         repos = find_git_repositories(base)
-        if base is not None:
+        if base is None:
             # Only generate the cache if we are doing the whole of HOME
             # (base is None)
             with open(cachefile, "w") as fd:
@@ -186,6 +186,7 @@ def main():
     else:
         with open(cachefile) as fd:
             repos = fd.read().split("\n")
+        if base is None: base = environ["HOME"]
         absbase = abspath(base)
         repos = [r for r in repos if r.startswith(absbase)]
     
