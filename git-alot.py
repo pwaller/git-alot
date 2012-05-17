@@ -206,7 +206,11 @@ def main():
     dirty_repos.sort()
     
     for repo in dirty_repos:
-        print repo
+        try:
+            print repo
+        except:
+            print "Encountered a problem ", repo.repo
+            raise
         print
     
     nrepos = len(repos)
@@ -245,7 +249,7 @@ def main():
     elif nclean > 0:
         print ".. only {0} of your {1} repositories are clean.".format(nclean, nrepos)
     else:
-        print "You have no clean repositories :-("
+        print "You have no clean repositories out of {0} :-(".format(nrepos)
     return 1
 
 if __name__ == "__main__":
