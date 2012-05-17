@@ -50,12 +50,18 @@ class AlotRepo(object):
         return self.repo.working_dir < rhs.repo.working_dir
     
     @property
+    def no_commits(self):
+        return not self.repo.refs
+    
+    @property
     def has_stash(self):
         return "refs/stash" in self.repo.refs
     
     @property
     def has_dirt(self):
         repo, o = self.repo, self.options
+        if self.no_commits:
+            return True
         if o.worktree and repo.is_dirty(index=False):
             return True
         if o.index and repo.is_dirty(working_tree=False):
@@ -71,6 +77,10 @@ class AlotRepo(object):
         repo = self.repo
         
         A(repo.working_dir)
+        
+        if self.no_commits:
+            A("  !! NO COMMITS !!")
+            return "\n".join(result)
         
         if self.options.worktree and repo.is_dirty(index=False):
             A("  == Dirty Working Tree ==")
