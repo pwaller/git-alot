@@ -27,8 +27,8 @@ sys.excepthook = gitalot_hook
 # Commandline switches (e.g, only view stashes, or other things)
 
 
-def find_git_repositories():
-    args = ["find", environ["HOME"], "-type", "d", "-iname", ".git"]
+def find_git_repositories(base):
+    args = ["find", base, "-type", "d", "-iname", ".git"]
     p = Popen(args, stdout=PIPE, stderr=PIPE)
     output, stderr = p.communicate()
     if p.returncode != 0:
@@ -53,7 +53,16 @@ class AlotRepo(object):
     
     @property
     def has_dirt(self):
-        return self.repo.is_dirty(untracked_files=True) or self.has_stash
+        repo, o = self.repo, self.options
+        if o.worktree and repo.is_dirty(index=False):
+            return True
+        if o.index and repo.is_dirty(working_tree=False):
+            return True
+        if o.untracked and repo.untracked_files:
+            return True
+        if o.stashes and self.has_stash:
+            return True
+        return False
     
     def __str__(self):
         result = []; A = result.append
@@ -61,24 +70,31 @@ class AlotRepo(object):
         
         A(repo.working_dir)
         
-        if repo.is_dirty(index=False):
+        if self.options.worktree and repo.is_dirty(index=False):
             A("  == Dirty Working Tree ==")
             A(indent(repo.git.diff(stat=True), i=3))
             
-        if repo.is_dirty(working_tree=False):
+        if self.options.index and repo.is_dirty(working_tree=False):
             A("  == Dirty Index (stuff to commit!) ==")
             A(indent(repo.git.diff(stat=True, cached=True), i=3))
-            
-        untracked = repo.untracked_files
-        if untracked:
-            A("  == {0} Untracked file(s) ==".format(len(untracked)))
-            MAX = 10
-            A(indent("\n".join(untracked[:MAX])))
-            if len(untracked) > MAX:
-                A(indent("... and {0} more".format(len(untracked)-MAX)))
         
-        if self.has_stash:
-            log = repo.refs["refs/stash"].log()
+        if self.options.untracked:
+            untracked = repo.untracked_files
+            if untracked:
+                A("  == {0} Untracked file(s) ==".format(len(untracked)))
+                MAX = 10
+                A(indent("\n".join(untracked[:MAX])))
+                if len(untracked) > MAX:
+                    A(indent("... and {0} more".format(len(untracked)-MAX)))
+        
+        if self.options.stashes and self.has_stash:
+            try:
+                log = repo.refs["refs/stash"].log()
+            except ValueError:
+                # GitPython workaround
+                A(indent("!! Problem reading stash !!"))
+                log = []
+                pass
             
             A("  == {0} item(s) in stash ==".format(len(log)))
             for i, stash in enumerate(log):
@@ -88,15 +104,56 @@ class AlotRepo(object):
                 
         
         return "\n".join(result)
+
+def parse_args(args):
+    from optparse import OptionParser
+    parser = OptionParser("git alot [options] [base directory]\n\n"
+        "The git alot can help you with a lot of repositories.")
+    O = parser.add_option
     
+    switches = dict(
+        worktree="w",
+        index="i",
+        untracked="u",
+        stashes="s",
+        branches="b",
+    )
+    for switch, small in sorted(switches.iteritems()):
+        small = "-" + small
+        O("--{0}".format(switch), small, action="store_true", dest=switch)
+        O("--no-{0}".format(switch), small.upper(), action="store_false", dest=switch)
+    
+    options, args = parser.parse_args(args)
+    
+    specific = any(getattr(options, s) for s in switches)
+
+    # If no specific dirt-type is selected, enable all unspecified ones
+    if not specific:
+        for s in switches:
+            if getattr(options, s) is None:
+                setattr(options, s, True)
+    
+    if not args:
+        base = environ["HOME"]
+    elif len(args) == 1:
+        base = args[0]
+    else:
+        print >>sys.stderr, "Error: unused arguments: ", args[1:]
+        print parser.usage()
+        raise SystemExit(1)
+    
+    return options, base
+
 def main():
     print "Searching for repositories..",
-    repos = find_git_repositories()
+    options, base = parse_args(sys.argv[1:])
+    repos = find_git_repositories(base)
     print "Found {0}. That's alot of git.".format(len(repos))
     
     repos = map(git.Repo, repos)
     repos = [r for r in repos if not r.bare]
     
+    AlotRepo.options = options
     repos = map(AlotRepo, repos)
     dirty_repos = [r for r in repos if r.has_dirt]
     dirty_repos.sort()
