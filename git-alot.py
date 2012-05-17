@@ -4,7 +4,20 @@ from os.path import expandvars
 from os import environ
 from subprocess import Popen, PIPE
 
+import sys
+
 import git
+
+old_hook = sys.excepthook
+def gitalot_hook(*args, **kwargs):
+    result = old_hook(*args, **kwargs)
+    exception_type, instance, traceback = args
+    if not isinstance(instance, KeyboardInterrupt):
+        print
+        print "Please make an issue with the contents of the backtrace:"
+        print "https://github.com/pwaller/git-alot/issues/new"
+    return result
+sys.excepthook = gitalot_hook
 
 # TODO
 
@@ -15,11 +28,12 @@ import git
 
 
 def find_git_repositories():
-    p = Popen(["find", environ["HOME"], "-iname", ".git"], stdout=PIPE, stderr=PIPE)
+    args = ["find", environ["HOME"], "-type", "d", "-iname", ".git"]
+    p = Popen(args, stdout=PIPE, stderr=PIPE)
     output, stderr = p.communicate()
     if p.returncode != 0:
         print "Find may not have found all repositories: {0}".format(stderr)
-    return output.split("\n")
+    return output.strip().split("\n")
 
 def indent(t, i=4):
     i = " "*i
