@@ -125,6 +125,8 @@ def parse_args(args):
         O("--{0}".format(switch), small, action="store_true", dest=switch)
         O("--no-{0}".format(switch), small.upper(), action="store_false", dest=switch)
     
+    O("-f", "--fetch", action="store_true",
+        help="Run git fetch --all for all matching repositories")
     O("-c", "--update-cache", action="store_true")
     
     options, args = parser.parse_args(args)
@@ -177,6 +179,12 @@ def main():
     
     repos = map(git.Repo, repos)
     repos = [r for r in repos if not r.bare]
+    
+    if options.fetch:
+        for repo in repos:
+            print "Fetching for", repo
+            repo.git.fetch("--all")
+        return 0
     
     AlotRepo.options = options
     repos = map(AlotRepo, repos)
